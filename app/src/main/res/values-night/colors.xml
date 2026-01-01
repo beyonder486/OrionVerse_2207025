@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors - Dark Theme -->
+    <color name="primary">#64B5F6</color>
+    <color name="primary_dark">#42A5F5</color>
+    <color name="primary_light">#90CAF9</color>
+    
+    <!-- Secondary Colors - Dark Theme -->
+    <color name="secondary">#4DB6AC</color>
+    <color name="secondary_dark">#26A69A</color>
+    <color name="secondary_light">#80CBC4</color>
+    
+    <!-- Accent Colors -->
+    <color name="accent">#FF7043</color>
+    
+    <!-- Post Type Colors -->
+    <color name="problem_color">#EF5350</color>
+    <color name="solution_color">#66BB6A</color>
+    <color name="general_color">#42A5F5</color>
+    
+    <!-- Status Colors -->
+    <color name="status_pending">#FFA726</color>
+    <color name="status_accepted">#66BB6A</color>
+    <color name="status_rejected">#EF5350</color>
+    
+    <!-- Background Colors - Dark Theme -->
+    <color name="background">#121212</color>
+    <color name="background_light">#1E1E1E</color>
+    <color name="card_background">#1E1E1E</color>
+    
+    <!-- Text Colors - Dark Theme -->
+    <color name="text_primary">#E0E0E0</color>
+    <color name="text_secondary">#B0B0B0</color>
+    <color name="text_hint">#757575</color>
+    <color name="text_white">#FFFFFF</color>
+    
+    <!-- Rating Star Color -->
+    <color name="star_filled">#FFC107</color>
+    <color name="star_empty">#424242</color>
+    
+    <!-- Divider -->
+    <color name="divider">#2C2C2C</color>
+    
+    <!-- Basic Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+</resources>
