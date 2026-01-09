@@ -58,6 +58,13 @@
             android:parentActivityName=".activities.MainActivity"
             android:screenOrientation="portrait" />
 
+        <!-- Applications List Activity -->
+        <activity
+            android:name=".activities.ApplicationsListActivity"
+            android:exported="false"
+            android:parentActivityName=".activities.PostDetailActivity"
+            android:screenOrientation="portrait" />
+
     </application>
 
 </manifest>
