@@ -54,6 +54,7 @@ public class Post {
     public void setTitle(String title) { this.title = title; }
     public void setDescription(String description) { this.description = description; }
     public void setPostType(String postType) { this.postType = postType; }
+    public void setPostTypeEnum(String postTypeEnum) { this.postType = postTypeEnum; } // For desktop compatibility
     public void setTags(List<String> tags) { this.tags = tags; }
     public void setApplicationsCount(int applicationsCount) { this.applicationsCount = applicationsCount; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }

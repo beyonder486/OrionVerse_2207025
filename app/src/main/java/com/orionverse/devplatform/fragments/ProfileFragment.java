@@ -19,6 +19,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.orionverse.devplatform.R;
+import com.orionverse.devplatform.activities.EditProfileActivity;
 import com.orionverse.devplatform.activities.LoginActivity;
 import com.orionverse.devplatform.adapters.PostAdapter;
 import com.orionverse.devplatform.models.Post;
@@ -131,7 +132,8 @@ public class ProfileFragment extends Fragment {
 
     private void setupListeners() {
         editProfileButton.setOnClickListener(v -> {
-            // TODO: Navigate to EditProfileActivity
+            Intent intent = new Intent(getActivity(), EditProfileActivity.class);
+            startActivity(intent);
         });
 
         themeButton.setOnClickListener(v -> showThemeDialog());
