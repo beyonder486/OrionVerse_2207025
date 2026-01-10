@@ -10,11 +10,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.orionverse.devplatform.R;
 import com.orionverse.devplatform.utils.FirebaseUtil;
+import com.orionverse.devplatform.utils.ThemeManager;
 import com.orionverse.devplatform.utils.ValidationUtil;
 
 public class LoginActivity extends AppCompatActivity {
@@ -27,31 +29,37 @@ public class LoginActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Reset theme from launch theme to normal theme BEFORE super.onCreate()
-        setTheme(R.style.Theme_OrionVerse);
+        // Initialize theme BEFORE super.onCreate to prevent black screen
+        ThemeManager.initTheme(this);
         
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "onCreate: LoginActivity starting");
-        
-        // Set content view FIRST to prevent black screen
         setContentView(R.layout.activity_login);
-        
+
         // Initialize views immediately
         initializeViews();
+        
+        // Setup listeners immediately
         setupListeners();
         
-        // Then check Firebase auth status (non-blocking)
-        auth = FirebaseUtil.getAuth();
-        Log.d(TAG, "onCreate: FirebaseAuth initialized");
+        // Check Firebase auth in background (non-blocking)
+        checkAuthenticationStatus();
+    }
 
-        // Check if user is already logged in
-        if (auth != null && auth.getCurrentUser() != null) {
-            Log.d(TAG, "onCreate: User already logged in, navigating to main");
-            navigateToMain();
-            return;
-        }
-        
-        Log.d(TAG, "onCreate: LoginActivity setup complete");
+    private void checkAuthenticationStatus() {
+        new Thread(() -> {
+            try {
+                Thread.sleep(100);
+                
+                auth = FirebaseUtil.getAuth();
+                boolean isLoggedIn = auth != null && auth.getCurrentUser() != null;
+                
+                if (isLoggedIn) {
+                    runOnUiThread(() -> navigateToMain());
+                }
+            } catch (Exception e) {
+                // Silent fail - user can still use login form
+            }
+        }).start();
     }
 
     private void initializeViews() {
@@ -134,5 +142,6 @@ public class LoginActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+        overridePendingTransition(0, 0); // No animation to prevent black flash
     }
 }

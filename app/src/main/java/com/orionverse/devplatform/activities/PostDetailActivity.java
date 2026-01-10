@@ -18,6 +18,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.DocumentReference;
 import com.orionverse.devplatform.R;
 import com.orionverse.devplatform.models.Application;
+import com.orionverse.devplatform.models.Notification;
 import com.orionverse.devplatform.models.Post;
 import com.orionverse.devplatform.models.User;
 import com.orionverse.devplatform.utils.DateUtil;
@@ -84,23 +85,23 @@ public class PostDetailActivity extends AppCompatActivity {
         String type = currentPost.getPostType();
         postTypeBadge.setText(type);
         GradientDrawable background = (GradientDrawable) postTypeBadge.getBackground();
-        if (type.equals("PROBLEM")) {
+        if (type.equals("PROJECT")) {
+            background.setColor(getResources().getColor(R.color.project_color));
+        } else if (type.equals("PROBLEM")) {
             background.setColor(getResources().getColor(R.color.problem_color));
-        } else if (type.equals("SOLUTION")) {
-            background.setColor(getResources().getColor(R.color.solution_color));
         } else {
             background.setColor(getResources().getColor(R.color.general_color));
         }
 
-        // Show appropriate buttons
+        // Show appropriate buttons - only for PROJECT type
         String currentUserId = FirebaseUtil.getCurrentUserId();
         boolean isAuthor = currentPost.getAuthorId().equals(currentUserId);
-        boolean isProblem = type.equals("PROBLEM");
+        boolean isProject = type.equals("PROJECT");
 
-        if (isAuthor && isProblem) {
+        if (isAuthor && isProject) {
             viewApplicationsButton.setVisibility(View.VISIBLE);
             viewApplicationsButton.setOnClickListener(v -> openApplicationsList());
-        } else if (!isAuthor && isProblem) {
+        } else if (!isAuthor && isProject) {
             applyButton.setVisibility(View.VISIBLE);
             applyButton.setOnClickListener(v -> showApplyDialog());
         }
@@ -171,6 +172,11 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void submitApplication(String currentUserId, String proposal) {
+        android.util.Log.d("PostDetailActivity", "=== STARTING APPLICATION SUBMISSION ===");
+        android.util.Log.d("PostDetailActivity", "Current User ID: " + currentUserId);
+        android.util.Log.d("PostDetailActivity", "Post ID: " + postId);
+        android.util.Log.d("PostDetailActivity", "Post Owner ID: " + currentPost.getAuthorId());
+        
         // Get current user's name
         FirebaseUtil.getUsersCollection().document(currentUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -195,13 +201,20 @@ public class PostDetailActivity extends AppCompatActivity {
 
                     appRef.set(application)
                             .addOnSuccessListener(aVoid -> {
+                                android.util.Log.d("PostDetailActivity", "Application saved to Firestore successfully");
+                                
                                 // Update post's application count
                                 FirebaseUtil.getPostsCollection().document(postId)
                                         .update("applicationsCount", currentPost.getApplicationsCount() + 1)
                                         .addOnSuccessListener(aVoid1 -> {
+                                            android.util.Log.d("PostDetailActivity", "Application count updated");
                                             Toast.makeText(this, "Application submitted successfully!", Toast.LENGTH_SHORT).show();
                                             applyButton.setEnabled(false);
                                             applyButton.setText("Applied");
+                                            
+                                            android.util.Log.d("PostDetailActivity", ">>> NOW SENDING NOTIFICATION TO POST OWNER <<<");
+                                            // Notify post owner about new application
+                                            sendApplicationNotificationToPostOwner(user.getUsername(), currentPost);
                                         });
                             })
                             .addOnFailureListener(e -> {
@@ -210,6 +223,31 @@ public class PostDetailActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Error loading user profile", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void sendApplicationNotificationToPostOwner(String applicantName, Post post) {
+        android.util.Log.d("PostDetailActivity", "Preparing to send notification to post owner: " + post.getAuthorId());
+        
+        Notification notification = new Notification(
+                post.getAuthorId(),
+                Notification.NotificationType.APPLICATION,
+                "New Application",
+                applicantName + " applied to your post: " + post.getTitle(),
+                post.getPostId()
+        );
+        
+        android.util.Log.d("PostDetailActivity", "Notification created - userId: " + notification.getUserId() 
+                + ", type: " + notification.getType() 
+                + ", title: " + notification.getTitle());
+        
+        FirebaseUtil.getNotificationsCollection()
+                .add(notification)
+                .addOnSuccessListener(documentReference -> {
+                    android.util.Log.d("PostDetailActivity", "✅ Notification sent successfully to post owner! Doc ID: " + documentReference.getId());
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e("PostDetailActivity", "❌ Failed to send notification to post owner", e);
                 });
     }
 }

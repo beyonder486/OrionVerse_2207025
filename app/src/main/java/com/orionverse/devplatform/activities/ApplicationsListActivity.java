@@ -2,6 +2,7 @@ package com.orionverse.devplatform.activities;
 
 import android.app.Dialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.ProgressBar;
@@ -13,15 +14,20 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.firebase.firestore.DocumentReference;
 import com.orionverse.devplatform.R;
 import com.orionverse.devplatform.adapters.ApplicationAdapter;
 import com.orionverse.devplatform.models.Application;
+import com.orionverse.devplatform.models.Notification;
+import com.orionverse.devplatform.models.PendingProject;
+import com.orionverse.devplatform.models.Post;
 import com.orionverse.devplatform.utils.FirebaseUtil;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ApplicationsListActivity extends AppCompatActivity {
+    private static final String TAG = "ApplicationsListActivity";
     private RecyclerView applicationsRecyclerView;
     private ApplicationAdapter adapter;
     private ProgressBar progressBar;
@@ -127,6 +133,14 @@ public class ApplicationsListActivity extends AppCompatActivity {
                 .document(application.getApplicationId())
                 .update("status", newStatus)
                 .addOnSuccessListener(aVoid -> {
+                    // Send notification to applicant
+                    sendNotificationToApplicant(application, newStatus);
+                    
+                    // If accepted, create pending project
+                    if (newStatus.equals("ACCEPTED")) {
+                        createPendingProject(application);
+                    }
+                    
                     Toast.makeText(this, "Application " + newStatus.toLowerCase(), 
                         Toast.LENGTH_SHORT).show();
                     loadApplications(); // Reload to refresh UI
@@ -134,6 +148,86 @@ public class ApplicationsListActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to update status: " + e.getMessage(), 
                         Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void sendNotificationToApplicant(Application application, String status) {
+        Log.d(TAG, "Sending notification to developer: " + application.getDeveloperId());
+        
+        Notification.NotificationType type = status.equals("ACCEPTED") 
+                ? Notification.NotificationType.APPLICATION_ACCEPTED
+                : Notification.NotificationType.APPLICATION_REJECTED;
+        
+        String title = status.equals("ACCEPTED") 
+                ? "Application Accepted!" 
+                : "Application Rejected";
+        
+        String message = status.equals("ACCEPTED")
+                ? "Congratulations! Your application for \"" + application.getPostTitle() + "\" has been accepted."
+                : "Your application for \"" + application.getPostTitle() + "\" has been rejected.";
+        
+        Notification notification = new Notification(
+                application.getDeveloperId(),
+                type,
+                title,
+                message,
+                application.getApplicationId()
+        );
+        
+        DocumentReference notifRef = FirebaseUtil.getNotificationsCollection().document();
+        notification.setNotificationId(notifRef.getId());
+        
+        Log.d(TAG, "Saving notification with ID: " + notifRef.getId());
+        
+        notifRef.set(notification)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Notification sent successfully to " + application.getDeveloperName());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to send notification: " + e.getMessage(), e);
+                });
+    }
+
+    private void createPendingProject(Application application) {
+        Log.d(TAG, "Creating pending project for post: " + application.getPostId());
+        
+        // First, fetch the full post details
+        FirebaseUtil.getPostsCollection()
+                .document(application.getPostId())
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    Post post = documentSnapshot.toObject(Post.class);
+                    if (post == null) {
+                        Log.e(TAG, "Post not found: " + application.getPostId());
+                        return;
+                    }
+                    
+                    PendingProject project = new PendingProject(
+                            application.getPostId(),
+                            application.getPostTitle(),
+                            post.getDescription(),
+                            post.getAuthorId(),
+                            post.getAuthorName(),
+                            application.getDeveloperId(),
+                            application.getDeveloperName(),
+                            application.getApplicationId()
+                    );
+                    
+                    DocumentReference projectRef = FirebaseUtil.getPendingProjectsCollection().document();
+                    project.setProjectId(projectRef.getId());
+                    
+                    Log.d(TAG, "Saving pending project with ID: " + projectRef.getId());
+                    
+                    projectRef.set(project)
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Pending project created successfully");
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to create pending project: " + e.getMessage(), e);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to fetch post details: " + e.getMessage(), e);
                 });
     }
 

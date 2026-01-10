@@ -1,9 +1,12 @@
 package com.orionverse.devplatform.activities;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,11 +17,14 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.orionverse.devplatform.R;
 import com.orionverse.devplatform.fragments.CreatePostFragment;
 import com.orionverse.devplatform.fragments.HomeFragment;
+import com.orionverse.devplatform.fragments.NotificationsFragment;
+import com.orionverse.devplatform.fragments.PendingProjectsFragment;
 import com.orionverse.devplatform.fragments.ProfileFragment;
 import com.orionverse.devplatform.fragments.SearchFragment;
 import com.orionverse.devplatform.utils.FirebaseUtil;
@@ -31,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private NavigationView navigationView;
     private MaterialToolbar toolbar;
     private TextView toolbarTitle;
+    private View notificationBadge;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         drawerLayout = findViewById(R.id.drawerLayout);
         navigationView = findViewById(R.id.navigationView);
         bottomNavigation = findViewById(R.id.bottomNavigation);
+        notificationBadge = findViewById(R.id.notificationBadge);
     }
 
     private void setupToolbar() {
@@ -165,6 +173,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             fragment = new ProfileFragment();
             title = "Profile";
             bottomNavigation.setSelectedItemId(R.id.nav_profile);
+        } else if (itemId == R.id.nav_drawer_notifications) {
+            fragment = new NotificationsFragment();
+            title = "Notifications";
+        } else if (itemId == R.id.nav_drawer_projects) {
+            fragment = new PendingProjectsFragment();
+            title = "Pending Projects";
         } else if (itemId == R.id.nav_drawer_settings) {
             title = "Settings";
             // TODO: Create SettingsFragment
@@ -212,5 +226,42 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkUnreadNotifications();
+    }
+
+    private void checkUnreadNotifications() {
+        String userId = FirebaseUtil.getCurrentUserId();
+        if (userId == null) return;
+
+        FirebaseUtil.getNotificationsCollection()
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("read", false)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    int unreadCount = querySnapshot.size();
+                    updateNotificationBadge(unreadCount);
+                });
+    }
+
+    private void updateNotificationBadge(int count) {
+        // Show/hide badge on hamburger icon
+        if (notificationBadge != null) {
+            notificationBadge.setVisibility(count > 0 ? View.VISIBLE : View.GONE);
+        }
+        
+        // Update drawer menu notification badge
+        MenuItem notificationMenuItem = navigationView.getMenu().findItem(R.id.nav_drawer_notifications);
+        if (notificationMenuItem != null) {
+            if (count > 0) {
+                notificationMenuItem.setTitle("Notifications (" + count + ")");
+            } else {
+                notificationMenuItem.setTitle("Notifications");
+            }
+        }
     }
 }
